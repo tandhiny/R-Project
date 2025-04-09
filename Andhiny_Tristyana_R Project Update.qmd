@@ -1,0 +1,448 @@
+---
+title: "Sales Performance & Customer Behavior Analysis"
+author: "Tristyana Putri Andhiny"
+format: 
+    html:
+      toc: true
+      toc-location: left
+      toc-depth: 4
+      embed-resources: true
+editor: visual
+execute:
+    warning: false
+    message: false
+    echo: false
+---
+
+# **1. Introduction**
+
+## **Business Problem & Relevance**
+
+Understanding sales performance is crucial for business decision-making. This report analyzes sales data from **Red30 Tech** to identify key trends in sales performance, pricing impact, and customer purchasing behavior. The findings will support business strategy improvements.
+
+## **About Red30 Tech**
+
+Red30 Tech is a **leading provider of secure, customizable technology and business solutions** designed for companies seeking **scalable and sustainable** results. With a focus on the **ever-evolving technology landscape**, the company aims to be the **go-to provider** for business technology solutions.
+
+Currently, Red30 Tech serves **over three billion people annually** through its **business applications, point-of-service contact solutions, and data storage**. The company has **5,000 employees in 22 countries**, with a goal of expanding to **100 countries by 2030**, ensuring global entrepreneurs have access to **environmentally sustainable technology solutions**.
+
+### **Customer Segments**
+
+Red30 Tech provides **tailored technology solutions** for businesses of all sizes, with a particular focus on: - **Startups** – Supporting emerging companies with scalable technology models. - **Mid-sized enterprises** – Core customers shaping the company’s research and product development. - **Enterprise clients** – Partnering with large corporations to develop cutting-edge business technology solutions.
+
+Red30 Tech is fictious company solely made for the creation and development of training materials. For more information, visit the [**Red30 Tech Website**](https://red30tech.com/about/).
+
+------------------------------------------------------------------------
+
+# **2. Methodology**
+
+## **Libraries Used**
+
+Below are the R libraries used in this report and their purposes:
+
+-   **tidyverse** – A collection of R packages for data manipulation, visualization, and analysis.
+-   **readxl** – Reads Excel files into R for further processing.
+-   **dplyr** – Part of `tidyverse`, used for data manipulation and filtering operations.
+-   **ggplot2** – Creates advanced visualizations and plots for data insights.
+-   **knitr** – Formats tables and outputs neatly for reporting.
+-   **DBI** – Provides an interface to work with databases, in this case, SQLite.
+-   **RSQLite** – Enables interaction with SQLite databases from R.
+-   **Scales** – Used for formatting numerical values in charts (e.g., adding commas for readability).
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(DBI)
+library(RSQLite)
+library(scales)
+
+```
+
+## **Data Acquisition & Preparation**
+
+### **Data Loading**
+
+The data for this analysis comes from **Red30 Tech Sales** stored in an **Excel file**. To ensure efficient handling, the dataset is loaded into a **SQLite database** and ensure the data has been loaded properly.
+
+```{r}
+# Connect to SQLite database
+db_path <- "C:/Users/adind/OneDrive/Documents/Neoma/Semester 2/04. R Programming/Project/sales_database.db"
+db <- dbConnect(SQLite(), db_path)
+
+# Load Excel data
+sales_data_excel <- read_excel("Red30 Tech Sales.xlsx")
+
+# Write to SQLite
+dbWriteTable(db, "sales", sales_data_excel, overwrite = TRUE)
+
+# Retrieve data from SQLite
+sales_data <- dbGetQuery(db, "SELECT * FROM sales")
+
+# Close connection
+dbDisconnect(db)
+```
+
+```{r}
+
+# Define the database path
+db_path <- "C:/Users/adind/OneDrive/Documents/Neoma/Semester 2/04. R Programming/Project/sales_database.db"
+
+# Connect to the SQLite database
+db <- dbConnect(SQLite(), db_path)
+
+# List tables to check if "sales" exists
+print(dbListTables(db))
+
+# If "sales" exists, check the first few rows
+if ("sales" %in% dbListTables(db)) {
+  print(dbGetQuery(db, "SELECT * FROM sales LIMIT 5"))
+} else {
+  print("⚠ 'sales' table is missing in SQLite!")
+}
+
+# Close the connection
+dbDisconnect(db)
+
+```
+
+### **Data Cleaning**
+
+The data has been thoroughly verified to ensure there are no missing values.
+
+```{r}
+# Check for missing values
+is.null(sales_data_excel)
+sum(is.na(sales_data_excel))
+```
+
+### **Data Transformation**
+
+During data transformation the column name has been standardized.
+
+```{r}
+# Standardize column names
+colnames(sales_data_excel) <- make.names(colnames(sales_data_excel))
+
+# Display column names
+print(colnames(sales_data_excel))
+```
+
+### **Exploratory Data Analysis (EDA)**
+
+For exploratory data analysis, **summary statistics** were generated for selected key columns. Additionally, visualizations were created, including a **bar plot** to represent **regions distribution** and a **histogram** to illustrate the **distribution of quantity**.
+
+```{r}
+# Summary statistics
+summary(sales_data_excel[, c('Quantity','Price','Discount','Order.Total')])
+
+# Visualize categorical distributions
+barplot(table(sales_data_excel$Sales.Region))
+
+# Distribution of quantity
+hist(sales_data_excel$Quantity)
+```
+
+------------------------------------------------------------------------
+
+### **Integration with Python**
+
+We make sure the connection and data loaded to avoid any error and furthermore to demonstrate the integration of Python within the Quarto document, we will generate a **Pareto chart for sales by product category** and a **Sunburst chart** visualizing customer distribution across **Customer Type, Sales Region, and Customer State** which we later can see in the chapter 3. Results.
+
+```{python}
+import sqlite3
+import pandas as pd
+
+# Define the correct database path
+db_path = r"C:\Users\adind\OneDrive\Documents\Neoma\Semester 2\04. R Programming\Project\sales_database.db"
+
+# Connect to SQLite database
+conn = sqlite3.connect(db_path)
+
+# List all tables to verify connection
+tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn)
+print("Available tables:", tables)
+
+# Check if "sales" exists before querying
+if "sales" in tables.values:
+    sales_data = pd.read_sql("SELECT * FROM sales", conn)
+    print("✅ Sales data loaded successfully!")
+else:
+    print("⚠ Table 'sales' does NOT exist in the database!")
+
+conn.close()
+
+```
+
+------------------------------------------------------------------------
+
+# **3. Results**
+
+## **3.1 Sales Trend YoY Analysis**
+
+```{r}
+# Sales Trend YoY
+sales_data_excel$OrderDate <- as.Date(sales_data_excel$OrderDate, origin = "1899-12-30")
+sales_data_excel$Year <- format(sales_data_excel$OrderDate, "%Y")
+
+sales_by_year <- sales_data_excel %>%
+  group_by(Year) %>%
+  summarize(TotalSales = sum(Order.Total, na.rm = TRUE)/1000)
+
+# Sales Trend Visualization
+ggplot(sales_by_year, aes(x = factor(Year), y = TotalSales, fill = factor(Year))) +
+  geom_bar(stat = "identity", color = "white") +
+  labs(title = "Sales Trend YoY", x = "Year", y = "Total Revenue") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Blues") +
+  theme(legend.position = "none")
+```
+
+## **3.2 Sales Trend By Region Analysis**
+
+```{r}
+# Sales Trend by Region
+
+# Convert OrderDate to Date and extract Year
+sales_data_excel$OrderDate <- as.Date(sales_data_excel$OrderDate, origin = "1899-12-30")
+sales_data_excel$Year <- format(sales_data_excel$OrderDate, "%Y")
+
+# Calculate yearly sales by region
+yearly_sales_by_region <- sales_data_excel %>%
+  group_by(Year, Sales.Region) %>%
+  summarize(TotalSales = sum(Order.Total, na.rm = TRUE) / 1000)
+
+# Create the line chart
+ggplot(yearly_sales_by_region, aes(x = Year, y = TotalSales, color = Sales.Region, group = Sales.Region)) +
+  geom_line(linewidth = 1) + # Use linewidth instead of size
+  geom_point() + # Add points instead of marker
+  labs(title = "Total Sales by Region Across the Year",
+       x = "Year",
+       y = "Total Sales (000 USD)",
+       color = "Region") + # Changed legend title
+  scale_y_continuous(labels = label_number(scale = 1)) + # Format y-axis to '000 USD'
+  scale_color_brewer(palette = "Blues") + # Monochrome blue palette
+  scale_x_discrete(breaks = unique(yearly_sales_by_region$Year)) + # Display all years on x-axis
+  theme_minimal() +
+  theme(legend.position = "right") + # move legend to right
+  geom_text(data = yearly_sales_by_region %>%
+              group_by(Sales.Region) %>%
+              filter(Year == max(Year)),
+            aes(label = Sales.Region, x = Year, y = TotalSales),
+            hjust = -0.1,
+            vjust = 0.5,
+            show.legend = FALSE) # Add region labels near the last point
+```
+
+## **3.3 Top-selling Products, Categories & Customers**
+
+```{r}
+# Top 5 Products
+kable(head(sales_data_excel %>%
+  group_by(ProdName) %>%
+  summarize(`Top 5` = sum(Order.Total)) %>%
+  arrange(desc(`Top 5`)), 5))
+# Top 5 Category
+kable(head(sales_data_excel %>%
+  group_by(ProdCategory) %>%
+  summarize(`Top 5` = sum(Order.Total)) %>%
+  arrange(desc(`Top 5`)), 5))
+# Top 5 Customers
+kable(head(sales_data_excel %>%
+  group_by(CustName) %>%
+  summarize(`Top 5` = sum(Order.Total)) %>%
+  arrange(desc(`Top 5`)), 5))
+```
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
+import seaborn as sns
+import sqlite3
+import plotly.express as px
+# Pareto Analysis: Sales by Product Category
+# Group by 'ProdCategory' and calculate total sales
+sales_by_category = sales_data.groupby("ProdCategory")["Order Total"].sum().sort_values(ascending=False)
+
+# Calculate cumulative percentage
+cumulative_percentage = sales_by_category.cumsum() / sales_by_category.sum() * 100
+
+# Create the Pareto chart
+fig, ax1 = plt.subplots(figsize=(12, 6))
+
+# Bar chart for sales (Sky Blue)
+ax1.bar(sales_by_category.index, sales_by_category.values, color="skyblue")
+ax1.set_xlabel("Product Category")
+ax1.set_ylabel("Sales (000 USD)", color="black")
+ax1.tick_params(axis="y", labelcolor="black")
+plt.xticks(rotation=90)
+
+# Format y-axis labels to display in '000 USD'
+ax1.yaxis.set_major_formatter(mtick.FuncFormatter(lambda x, pos: f'{x/1000:.0f}'))
+
+# Line chart for cumulative percentage (Red)
+ax2 = ax1.twinx()
+ax2.plot(sales_by_category.index, cumulative_percentage, color="red", marker="o")
+ax2.set_ylabel("Cumulative Percentage", color="black")
+ax2.tick_params(axis="y", labelcolor="black")
+
+# Add labels to the line chart
+for i, value in enumerate(cumulative_percentage):
+    ax2.text(sales_by_category.index[i], value, f'{value:.1f}%', ha='center', va='bottom', color = 'black')
+
+# Add a horizontal line at 80%
+ax2.axhline(y=80, color="gray", linestyle="--")
+
+plt.title("Pareto Chart: Sales vs. Product Category")
+plt.tight_layout()
+plt.show()
+
+```
+
+## **3.4 Customer Segmentation**
+
+```{python}
+#Create sunburst chart
+if "CustomerType" in sales_data.columns and "Sales Region" in sales_data.columns and "CustState" in sales_data.columns:
+    sunburst_fig = px.sunburst(sales_data, path=["CustomerType", "Sales Region", "CustState"], values="Order Total",
+                                title="Customer Segmentation: Sunburst Chart",
+                                color_continuous_scale="Blues")
+    sunburst_fig.show()
+```
+
+## **3.5 Scatter Plot Price vs Quantity**
+
+```{r}
+# Scatter plot for Price vs Quantity
+ggplot(sales_data_excel, aes(x = Price, y = Quantity)) +
+  geom_point(color = "#1f78b4", alpha = 0.6) +
+  labs(title = "Price vs Quantity Scatter Plot", x = "Price", y = "Quantity") +
+  theme_minimal()
+
+```
+
+------------------------------------------------------------------------
+
+# **4. Conclusion**
+
+## **4.1 Summary of Key Findings**
+
+-   **Sales Trends YoY:** The overall sales trend shows significant revenue **growth** from 2017 to **2018**, followed by a **decline** in **2019**. The sharp increase in 2**018 suggests strong business performance**, likely due to improved marketing, higher customer acquisition, or an increase in product demand. However, the decline in **2019 indicates potential challenges** such as market saturation, increased competition, or ineffective pricing strategies. Further analysis is required to determine whether external factors or internal business decisions contributed to this drop. Furthermore we analyse the sales by region we notice that most regions experienced a decline in 2019 particularly S Cental West and Southwest while N Central West and Northwest consistently reported lower sales across all year suggesting a need for targeted business strategies
+-   **Pareto Chart:** The **"Robots"**category contributes the highest revenue, followed by **"Drone", "Robot Kits", and "Drone Kits"**. These four category combine contributes to **88.8%** of total sales.
+-   **Customer Segmentation:** The **majority of total spending** comes from **Business customers**, which accounts for **6,577K** in total sales in whic 50% out of it contributed by Central East, North East and N Central East. **Individual customers** contribute significantly less, totaling **322K** in sales. This suggest that the company primarily serves business clients aligning with the company's target market.
+-   **Price vs Quantity:** The Scatter plot shows relationship between Price and Quantity which most of sales transactions occur at lower price points, with a high concentration of data points **below 250** in price. As price increase the quantity sold decrease indicating **price sensitivity**.
+
+## **4.2 Actionable Recommendations**
+
+Based on the findings from the analysis, the following recommendations can be implemented to address the identified challenges and optimize business performance:
+
+#### **Sales Growth Strategies**
+
+1.  **Investigate the 2019 Sales Decline:**
+
+    -   Conduct a deeper analysis of external factors (e.g., economic downturn, competitor strategies) and internal factors (e.g., pricing strategy, marketing effectiveness) that may have contributed to the revenue drop.
+
+    -   Implement corrective measures such as revisiting pricing models or introducing customer retention initiatives.
+
+2.  **Enhance Sales Strategies in Declining Regions:**
+
+    -   **S Central West and Southwest** saw significant declines; targeted marketing campaigns, localized promotions, and better distribution strategies can help **recover lost sales**.
+
+    -   For consistently lower-performing regions (**N Central West, Northwest**), consider **customer segmentation analysis** to better understand demand and introduce region-specific product offerings or incentives.
+
+3.  **Leverage High-Performing Regions for Growth:**
+
+    -   **Central East, Northeast, and N Central East** are strong contributors to business sales. Capitalizing on these regions with increased marketing efforts and exclusive business deals could help **sustain growth**.
+
+    -   Expand **strategic partnerships** with major business clients in these regions to maintain long-term customer retention.
+
+#### **Product & Inventory Optimization**
+
+4.  **Prioritize High-Contributing Categories:**
+
+    -   The **Pareto analysis** shows that "Robots," "Drones," "Robot Kits," and "Drone Kits" account for **88.8% of total sales**. Ensuring sufficient inventory levels, **streamlining supply chain logistics**, and implementing **targeted promotions** will help sustain and boost revenue from these products.
+
+    -   Introduce up-selling **or bundling strategies** for top-selling products to increase revenue per transaction.
+
+5.  **Expand Product Offerings in Lower-Contributing Categories:**
+
+    -   The **eBooks and Blueprints** categories contribute the least to revenue. Consider **evaluating demand for these products**, improving their value proposition, or repackaging them with high-performing categories for **better market adoption**.
+
+#### **Customer & Pricing Strategies**
+
+6.  **Maximize Business Customer Engagement:**
+
+    -   With **Business clients accounting for 6,577K in total sales**, consider **exclusive loyalty programs, bulk purchase discounts, and personalized account management** to drive repeat business.
+
+    -   Strengthen **relationships with existing high-value business customers** through tailored services and long-term agreements.
+
+7.  **Improve Individual Customer Engagement:**
+
+    -   While **individual customers contribute less (322K in sales)**, this segment presents a potential growth opportunity.
+
+    -   Consider **offering special incentives**, promotional discounts, or subscription-based models to **encourage higher spending from individuals**.
+
+    -   Create **basic, premium, and enterprise-tier plans** to cater to different customer segments.
+
+8.  **Optimize Pricing Strategies to Address Price Sensitivity:**
+
+    -   The **Price vs Quantity scatter plot** indicates that **lower-priced products dominate sales**, and **higher prices reduce quantity sold**.
+
+    -   **Implement dynamic pricing models**, offering volume-based discounts or targeted promotions on high-priced items to encourage larger purchases.
+
+## **4.3 Limitations & Future Steps**
+
+#### **Limitations of the Analysis**
+
+1.  **Lack of External Market Data:**
+
+    -   The analysis primarily focuses on internal sales data, without considering **macro-economic trends, competitor strategies, or industry-wide demand fluctuations** that could impact sales performance.
+
+    -   Future research should incorporate **market intelligence reports, competitor pricing analysis, and economic indicators** for a more comprehensive business strategy.
+
+2.  **Seasonality and Demand Fluctuations Not Analyzed:**
+
+    -   Sales seasonality (e.g., holiday sales, promotional periods) was not accounted for in this analysis, which could provide **valuable insights into peak and low-demand periods**.
+
+    -   Future work should include **time series forecasting models** to detect seasonality and optimize **inventory planning and marketing campaigns**.
+
+3.  **Customer Behavior Insights Limited:**
+
+    -   The study highlights the **distribution of customer spending (Business vs. Individual customers)** but does not provide deep insights into **purchase behavior, preferences, or retention rates**.
+
+    -   Future analysis could explore **customer lifetime value (CLV), churn prediction models, and sentiment analysis from customer feedback**.
+
+4.  **Limited Granularity on Product-Level Sales Performance:**
+
+    -   While the Pareto chart identifies high-revenue product categories, **a more detailed sub-category or SKU-level analysis could help refine inventory and pricing decisions further**.
+
+    -   Future steps should include a **drill-down analysis of sales trends for individual products within top-performing categories**.
+
+#### **Future Steps**
+
+**Implement Predictive Analytics for Forecasting**
+
+-   Utilize **machine learning models** to predict future sales trends based on **historical data, seasonality, and external factors**.
+
+-   Incorporate **AI-driven demand forecasting** to **optimize inventory and prevent stockouts or overstocking**.
+
+**Expand Data Integration for Better Decision-Making**
+
+-   Integrate additional data sources, such as **customer engagement metrics, industry benchmarks, and competitor pricing strategies**, to refine strategic decisions.
+
+-   Explore using **real-time dashboards and automation tools** to continuously track performance and respond dynamically to market changes.
+
+**Conduct A/B Testing for Pricing & Promotions**
+
+-   **Test different discount strategies and promotional campaigns** to assess the **impact on sales and profitability**.
+
+-   Implement **personalized pricing recommendations** based on customer purchasing behavior.
+
+**Optimize the Sales Funnel for Individual Customers**
+
+-   Develop **targeted marketing campaigns** to increase **engagement and conversion rates** for individual customers.
+
+-   Introduce **subscription models or premium-tier offers** to **boost long-term value from individual consumers**.
