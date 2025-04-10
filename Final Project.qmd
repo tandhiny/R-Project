@@ -1,0 +1,337 @@
+---
+title: "Analysis of National Cuisine Preferences Across Countries"
+subtitle: "Statistical Exploration Using Correspondence Analysis"
+author: "Anuvind Krishna, Harshita Shekar, Mohamed Farhan Hussain, Revathy Kannikkal Rajesh, Tristyana Putri Andhiny"
+format: 
+    html:
+      toc: true
+      toc-location: left
+      toc-depth: 4
+      code-fold: true
+      embed-resources: true
+editor: visual
+execute:
+    warning: false
+    message: false
+editor_options: 
+  chunk_output_type: console
+---
+
+# 1. Introduction
+
+## 1.1 Background
+
+In an increasingly globalized world, the understanding of **cross-cultural food preferences** is becoming essential. Food is not only a basic human need but also a deeply embedded cultural marker. Preferences for certain cuisines often reflect a society’s values, traditions, and exposure to foreign cultures. With global mobility, digital food delivery platforms, and the popularity of culinary tourism, consumers are constantly exposed to a wide array of international cuisines. Yet, despite globalization, national and regional preferences remain distinct and persistent.
+
+Understanding how **people from different countries relate to various national cuisines** provides valuable insights into cultural affinities and differences. For instance, why does Italian cuisine enjoy widespread global appeal, while other regional cuisines remain niche? Are there identifiable clusters of countries that share similar tastes? These are the types of questions that drive cross-cultural food preference research.
+
+This knowledge is especially **relevant for stakeholders in several industries**:
+
+-    **Marketers and international food brands** must understand regional palates to tailor product offerings, advertisements, and menus. A one-size-fits-all approach rarely works in the food industry, making cultural adaptation crucial.
+
+-    **Tourism boards** and travel companies can enhance visitor experiences by promoting national dishes that appeal to specific foreign markets.
+
+-    **Global food chains and restaurants** seeking international expansion need data-driven insight into where their cuisine is likely to succeed and where it might require adaptation or fusion.
+
+-    From an academic standpoint, analyzing cuisine preferences across nations also contributes to studies in **consumer behavior, cultural analytics, and international marketing strategy**. A statistical understanding of such preferences, particularly through **data mining and multivariate analysis techniques**, enables the development of more accurate models for consumer segmentation and targeting.
+
+Given these considerations, this research explores whether statistically significant relationships exist between countries and their cuisine preferences, and whether clusters of culturally aligned countries can be identified based on shared tastes.
+
+## 1.2 Research Problem
+
+Are there **systematic relationships** between a **person’s country** and their **preferred cuisines**?
+
+## 1.3 Research Objective
+
+The objective of the research is the following:
+
+-   To examine if cuisine preferences are associated with countries.
+
+-   To identify groups of countries with similar national cuisine preferences.
+
+## 1.4 Hypotheses
+
+-   **H₀**: There is **no relationship** between national cuisine preferences and countries.
+
+<!-- -->
+
+-   **H₁**: There **is a relationship** between national cuisine preferences and countries.
+
+# 2. Literature Review
+
+**Correspondence Analysis (CA)**
+
+Correspondence analysis has been developed in 1961 par JP. Benzécri and it's scholars. The objective of it is to study the association structure between two categorical variables by decomposing a two-way table (cross-tab) into a certain number of factors. The graphical representation of factors allows a simple interpretation of the association structure and may lead to identifying peculiar aspects that could not be read directly on table (Trinchera, 2025)
+
+# 3. Methodology
+
+## 3.1 Load Required Packages
+
+```{r}
+# Load required packages
+
+library(FactoMineR)
+library(factoextra)
+```
+
+## 3.2 Load Dataset
+
+```{r}
+cuisine_data <- read.table("Cusine-pref-raw.txt", header = TRUE, sep = "\t", row.names = 1)
+```
+
+## 3.3 View Data
+
+```{r}
+head(cuisine_data)
+```
+
+## 3.4 Data Statistics
+
+```{r}
+cuisine_data <- as.table(as.matrix(cuisine_data))
+
+
+summary(cuisine_data)
+```
+
+The data shows **very strong associations** between countries and their cuisine preferences. Since the Chi Square value is large and p value is 0,we can confirm that **cuisine preference is not independent of country**—certain cuisines are preferred more in some countries than others.
+
+#### 3.4.1 Cross-table with total sum
+
+```{r}
+sum_data = as.data.frame.matrix(addmargins(cuisine_data))
+knitr::kable(sum_data)
+```
+
+#### 3.4.2 Computing the frequency table
+
+```{r}
+
+frequency_table = as.data.frame.matrix(round(addmargins((prop.table(cuisine_data))),4))
+knitr::kable(frequency_table)
+
+```
+
+#### 3.4.3 Compute Row profiles
+
+```{r}
+Row.F <- prop.table(cuisine_data,margin=1) # prop.table(Data,1) means that you will divide each cell of the contigengy table by the total of its row  
+Row.F <- as.data.frame.matrix(round(addmargins(Row.F),3))
+knitr::kable(Row.F)
+```
+
+#### 3.4.4 Compute Column profiles
+
+```{r}
+Col.F <- prop.table(cuisine_data,margin=2) # prop.table(Data,2) means that you will divide each cell of the contigengy table by the total of its col  
+Col.F <- as.data.frame.matrix(round(addmargins(Col.F),3))
+knitr::kable(Col.F)
+```
+
+# 4. Results and Analysis
+
+### 4.1 Run BCA with the FactoMineR package
+
+```{r}
+results <-CA(cuisine_data)
+summary(results)
+```
+
+```{r}
+fviz_ca_biplot(results,
+               repel = TRUE,         # Avoid overlapping labels
+               title = "CA Biplot: Countries and Cuisines",
+               col.row = "brown",    # Row points (cuisines)
+               col.col = "blue",     # Column points (countries)
+               label = "all",        # Show both labels
+               geom = "text")        # Use text instead of points
+```
+
+**Dim 1 (x-axis)** and **Dim 2 (y-axis)** are the first two principal dimensions that together explain the variation (or inertia) in the data. **Dim 1 explains 29.44%** of the total variation and **Dim 2 explains 25.05%**. Together, they explain **54.49%** of the variation in the data.
+
+The red triangles represent countries and the blue circles represent the cuisines.
+
+Points near the **center** are more **"neutral" or widespread** — cuisines enjoyed across multiple countries, or countries that have balanced preferences. example- USA, French, Norwegian and Japanese cuisine have a more global appeal.
+
+The **closer** two points (red and blue) are on the map, the **more closely they are associated**. For example Spain is close to Spanish, which means that there is a strong association between the country and the cuisine. Similarly, Malaysia is close to Malaysian cuisine.
+
+The Correspondence Analysis biplot reveals clear patterns in national cuisine preferences across countries, as represented by the spatial distribution of countries (in red) and cuisines (in blue) across the two principal dimensions.
+
+In the **top right quadrant**, countries such as **Indonesia, Malaysia, and India** are positioned near cuisines like **Malaysian, Indonesian, and British**, suggesting that these nations exhibit a strong preference for **Southeast Asian cuisines**, along with a possible retained affinity for British cuisine, potentially linked to shared colonial history or cultural exchange.
+
+The **top left quadrant** is primarily occupied by **Saudi Arabia and the UAE**, closely aligned with **Middle Eastern cuisines** such as **Lebanese, Moroccan, and Turkish**. This indicates a distinct culinary preference rooted in regional food traditions, differentiating these countries from both Western and East Asian food clusters.
+
+In the **bottom right quadrant**, a cluster of **East and Southeast Asian countries** — including **China, Vietnam, Thailand, Taiwan, Korea, Hong Kong**, and **Japan** — is closely associated with cuisines such as **Japanese, Vietnamese, Thai, Chinese, and Korean**. The tight grouping signifies a strong **regional alignment** in taste, reflecting shared culinary heritage and cultural proximity.
+
+Conversely, the **bottom left quadrant** includes predominantly **Western and European countries**, such as **France, Italy, Germany, Sweden, Greece, Spain**, and **Argentina**, which align closely with **European cuisines** like **French, Italian, Spanish, German, and Greek**. These nations show cohesive culinary preferences rooted in Western gastronomic traditions.
+
+Lastly, countries positioned near the **center of the map** — such as **USA, Great Britain, Finland, and Australia** — do not show extreme preferences for any specific cuisine. Their central location suggests a more **balanced or diverse culinary interest**, possibly due to globalization and multicultural influences in these societies.
+
+This quadrant-based interpretation confirms that **cuisine preferences are not randomly distributed** but instead reflect **regional, cultural, and historical patterns**, supporting the rejection of the null hypothesis of independence between countries and their preferred cuisines.
+
+### 4.2 Variance explained by each dimension
+
+```{r}
+fviz_screeplot(results, addlabels = TRUE, ylim = c(0, 50))
+```
+
+The scree plot illustrates the **percentage of total inertia (variance)** explained by each principal dimension derived from the Correspondence Analysis. This is a critical step in determining how many dimensions should be retained for meaningful interpretation.
+
+-    The **first dimension (Dim 1)** explains **29.4%** of the total variance.
+
+-    The **second dimension (Dim 2)** contributes an additional **25.0%**.
+
+-    Together, **Dim 1 and Dim 2 account for 54.4%** of the total inertia, indicating that a two-dimensional representation captures more than half of the relationship structure in the data.
+
+Subsequent dimensions explain much smaller proportions of variance:
+
+-    Dim 3 = 9.4%
+
+-    Dim 4 = 6.2%
+
+-   Dim 5 = 5.5% and so on.
+
+The steep drop between the second and third dimensions (an **“elbow” shape**) suggests that the **first two dimensions capture the most meaningful associations**, and higher dimensions contribute marginally to additional interpretation.
+
+Thus, retaining **two dimensions** is both statistically sound and visually interpretable, justifying the use of a **2D CA biplot** to examine the associations between countries and their cuisine preferences.
+
+### 4.3 Top cuisines that contribute to the first 2 axes.
+
+```{r}
+# Contribution to Dim 1
+fviz_contrib(results, choice = "row", axes = 1, title="Contribution of cuisines to Dim-1")
+
+# Contribution to Dim 2
+fviz_contrib(results, choice = "row", axes = 2, title="Contribution of cuisines to Dim-2")
+
+```
+
+**Dimension 1 (Dim-1)** – 29.4% of total variance
+
+**Most influential cuisines**:
+**Greek**, **Singaporean**, **Taiwanese**, **Hong Kong**, and **Korean** stand out with the highest contributions (above 10% in some cases).
+
+**Dimension 2 (Dim-2)** – 25.0% of total variance
+
+**Most influential cuisines**:
+**Saudi Arabian** and **Emirati** cuisines dominate Dim-2 with contributions exceeding **28% and 16%**, respectively. These outliers strongly define the vertical (Y) axis.
+
+### 4.4 Top countries that contribute to the first 2 axes.
+
+```{r}
+# Contribution to Dim 1
+fviz_contrib(results, choice = "col", axes = 1, title="Contribution of countries to Dim-1")
+
+# Contribution to Dim 2
+fviz_contrib(results, choice = "col", axes = 2, title="Contribution of countries to Dim-2")
+```
+
+**Dimension 1 (Dim-1)** – 29.4% of Total Inertia
+
+**Top contributors** include **Sweden**, **Singapore**, **Vietnam**, **Italy**, **Thailand**, and **Spain**, each contributing more than the average threshold (red line).
+
+**Dimension 2 (Dim-2)** – 25.0% of Total Inertia
+
+**Saudi Arabia** is the dominant contributor, accounting for over **30%** of Dim-2’s inertia — far above the average line — followed by **UAE**, **Indonesia**, and **India**.
+
+### **4.5 Cos²** Plot – Quality of Representation of Countries and Cuisines in first 2 axes.
+
+To assess the reliability of the two-dimensional map produced by the Correspondence Analysis (CA), a **squared cosine (cos²) analysis** was performed. The cos² value measures the **quality of representation** of each country and cuisine on the two retained dimensions (Dim 1 and Dim 2), indicating how much of a point's total inertia (variance) is captured in the 2D projection.
+
+Cos² values range from 0 to 1, where higher values indicate a better representation of a point in the selected dimensions. This allows for a more nuanced interpretation of the CA results by distinguishing between **well-represented elements**, whose positions can be trusted, and **poorly-represented elements**, which may require further exploration in higher dimensions.
+
+```{r}
+fviz_ca_row(results, col.row = "cos2",
+            gradient.cols = c("white", "blue", "black"),
+            title = "Cuisine Quality of Representation", repel = TRUE)
+
+```
+
+#### **Cuisine Quality of Representation**
+
+The cos² plot for cuisines revealed that several cuisines are **strongly represented** on the two-dimensional map. Notably:
+
+-   **Saudi Arabian, Singaporean, Malaysian, Emirati, and Korean cuisines** exhibit **high cos² values**, indicating that their positions on the biplot can be interpreted with high confidence.
+
+-    These cuisines contribute substantially to the structure captured by the first two dimensions, and their location on the map reflects meaningful and distinct preference patterns among countries.
+
+Conversely, **cuisines such as Brazilian, Peruvian, Mexican, and French** have **lower cos² values**, suggesting that their positions are less accurately represented in two dimensions. Their interpretation may benefit from consideration of additional dimensions not visualized in the current biplot.
+
+```{r}
+fviz_ca_col(results, col.col = "cos2",
+            gradient.rows = c("white", "blue", "black"),
+            title = "Country Quality of Representation", repel = TRUE)
+```
+
+#### **Country Quality of Representation**
+
+Similarly, the cos² plot for countries showed that:
+
+-    **Saudi Arabia, UAE, Singapore, Malaysia, Indonesia, and India** are **well represented**, as indicated by darker colors and higher cos² values. These countries’ preference profiles are clearly defined in the 2D factor space, justifying more confident interpretations of their relationships with specific cuisines.
+
+-    In contrast, countries such as **France, Germany, Brazil, and Norway** displayed **lower cos² values**, indicating that their projections onto Dim 1 and Dim 2 account for a smaller portion of their total variance. These countries may be better understood by exploring higher-order dimensions.
+
+### 4.6 Clustering
+
+```{r}
+# Extract country coordinates (columns = countries)
+country_coord <- results$col$coord  # For countries
+# If you want to cluster cuisines instead, use: ca_result$row$coord
+
+# Optional: Use only first 2 dimensions
+country_coord_2D <- country_coord[, 1:2]
+
+# Compute distance matrix
+dist_matrix <- dist(country_coord_2D)
+
+# Perform Hierarchical Clustering
+hc <- hclust(dist_matrix, method = "ward.D2")
+
+# Visualize the dendrogram
+fviz_dend(hc, k = 4, # You can change number of clusters here
+          cex = 0.8,
+          rect = TRUE, 
+          rect_fill = TRUE, 
+          main = "Dendrogram of Countries Based on Cuisine Preferences")
+```
+
+To complement the Correspondence Analysis (CA) and further explore patterns in national cuisine preferences, a hierarchical clustering analysis was conducted on the country coordinates extracted from the CA’s first two dimensions. The resulting dendrogram groups countries based on the similarity of their cuisine preference profiles, revealing meaningful clusters with regional and cultural coherence.
+
+The dendrogram identified four main clusters:
+
+#### 🔴 **Cluster 1: Western Countries**
+
+This cluster includes the **USA, Germany, Sweden, Denmark, Norway, France, Italy, and Spain**. These countries exhibit similar culinary preferences, likely centered around traditional **Western and European cuisines** such as French, Italian, and German. The closeness of the countries within this group reflects a **shared Western food culture** and possibly similar levels of exposure to global cuisine trends. Their relatively short branch lengths indicate a high degree of similarity in preferences within the group.
+
+#### 🟢 **Cluster 2: East and Southeast Asia + Globalized Countries**
+
+The second cluster is more diverse and includes **Japan, China, Taiwan, Thailand, Hong Kong, Vietnam**, as well as **Great Britain, Finland, Singapore, Australia, and the Philippines**. This grouping blends **East and Southeast Asian countries** with **cosmopolitan nations** that tend to have multicultural populations and broader exposure to international cuisines. The presence of countries such as Great Britain and Australia within this cluster may be attributed to their **postcolonial ties to Asia**, immigration patterns, and openness to a variety of global cuisines. This cluster represents **a convergence of regional taste preferences and global culinary acceptance**.
+
+#### 🔵 **Cluster 3: Saudi Arabia (Outlier)**
+
+**Saudi Arabia** stands out as a **singleton cluster**, indicating that its cuisine preference profile is **distinct from all other countries**. This aligns with findings from the CA biplot and contribution plots, which consistently show that Saudi Arabian preferences are **highly specific and culturally distinct**. This result highlights the unique culinary identity of Saudi Arabia and suggests a limited overlap in food preferences with both Western and Asian countries.
+
+#### 🟣 **Cluster 4: South and Southeast Asia**
+
+The fourth cluster includes **Indonesia, Malaysia, India, and the United Arab Emirates (UAE)**. These countries demonstrate strong **regional alignment**, likely sharing preferences for **South Asian and Southeast Asian cuisines**. The tightness of this cluster indicates that their food preferences are both culturally embedded and mutually reinforcing. Given the richness and diversity of food traditions in this region, this cluster may reflect both **national culinary pride** and **shared taste preferences across neighboring countries**.
+
+# 5. Conclussion
+
+This study aimed to investigate whether a significant relationship exists between people’s countries of origin and their national cuisine preferences and to identify clusters of countries with similar taste profiles. Using **Correspondence Analysis (CA)** and **Hierarchical Clustering**, the analysis revealed both statistical and visual evidence of non-random structure in global food preferences.
+
+The **Chi-square test** embedded in the CA confirmed a **strong and statistically significant association** between countries and cuisines (χ² = 32,158, p \< 0.001), leading to the **rejection of the null hypothesis (H₀)**. This supports the alternative hypothesis (H₁), affirming that national cuisine preferences are **not independent** of country and are instead **culturally and regionally driven**.
+
+The **first two dimensions of CA** captured over **54% of the total inertia**, enabling a meaningful two-dimensional interpretation of the data. Dimension 1 distinguished Western from Eastern cuisine preferences, while Dimension 2 highlighted regional and culturally specific culinary patterns, especially in the Middle East and Southeast Asia. High cos² values for countries like **Saudi Arabia, Singapore, and Malaysia** validated their strong influence in defining these axes.
+
+Further insights emerged from the **dendrogram of hierarchical clustering**, which grouped countries into four main clusters:
+
+-    A **Western European and North American cluster**, sharing mutual preferences for traditional Western cuisines.
+
+-    An **East and Southeast Asian cluster**, including both regional countries and globally open nations like Singapore and Australia.
+
+-    A distinct **South Asian/Middle Eastern cluster**, showcasing strong alignment in preferences for local and regional cuisines.
+
+-    **Saudi Arabia** emerged as an **outlier**, suggesting a highly specific and culturally unique preference profile.
+
+Together, the CA and clustering analysis confirm that **national cuisine preferences are structured, interpretable, and culturally anchored**. Countries with shared geography, historical ties, or cultural influence tend to exhibit **similar food choices**, reinforcing the idea that cuisine remains a powerful expression of national identity and regional affiliation.
